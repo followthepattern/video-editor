@@ -8,9 +8,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n server,web -c blue,green \"npm run dev -w @ve/server\" \"npm run dev -w @ve/web\"",
+    "predev": "npm run build -w @ve/core",
+    "dev": "concurrently -n core,server,web -c gray,blue,green \"npm run dev -w @ve/core\" \"npm run dev -w @ve/server\" \"npm run dev -w @ve/web\"",
     "build": "npm run build -w @ve/core && npm run build -w @ve/server && npm run build -w @ve/mcp && npm run build -w @ve/web",
-    "mcp": "npm run start -w @ve/mcp",
+    "mcp": "npm run build -w @ve/core && npm run build -w @ve/mcp && npm run start -w @ve/mcp",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
   },
