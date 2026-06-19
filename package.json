@@ -1,0 +1,27 @@
+{
+  "name": "video-editor",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Descript-like video editor with an MCP server, powered by the ffmpeg CLI",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"pnpm --filter @ve/server dev\" \"pnpm --filter @ve/web dev\"",
+    "build": "pnpm --filter @ve/core build && pnpm --filter @ve/server build && pnpm --filter @ve/mcp build && pnpm --filter @ve/web build",
+    "mcp": "pnpm --filter @ve/mcp start",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.2",
+    "tsx": "^4.19.2"
+  },
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "ffmpeg-static"]
+  }
+}

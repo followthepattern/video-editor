@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #0b0d11;
+  color: #e6e8ee;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  overflow: hidden;
+}
+
+/* Scrollbars to match the dark theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3140;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Tame the timeline library's default light styling */
+.timeline-editor {
+  background-color: #12141a !important;
+}
+.timeline-editor .timeline-editor-edit-row {
+  background-color: #12141a !important;
+  background-image: linear-gradient(#1c2029 1px, transparent 0),
+    linear-gradient(90deg, #1c2029 1px, transparent 0) !important;
+}
