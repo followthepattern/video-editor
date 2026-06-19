@@ -7,7 +7,7 @@ change appears live in the browser.
 ## Build & register
 
 ```bash
-pnpm build   # from the repo root
+npm run build   # from the repo root
 claude mcp add video-editor \
   -e VE_PROJECT_DIR=/absolute/path/to/projects/default \
   -e FFMPEG_SOURCE=system \

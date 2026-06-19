@@ -37,7 +37,7 @@ export async function resolveFfmpeg(
         ffmpeg = (mod.default as unknown as string) || undefined;
       } catch {
         throw new Error(
-          "FFMPEG_SOURCE=download but 'ffmpeg-static' is not installed. Run `pnpm install` (it is an optional dependency).",
+          "FFMPEG_SOURCE=download but 'ffmpeg-static' is not installed. Run `npm install` (it is an optional dependency).",
         );
       }
     }

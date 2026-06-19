@@ -4,12 +4,15 @@
   "version": "0.1.0",
   "description": "Descript-like video editor with an MCP server, powered by the ffmpeg CLI",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "concurrently -n server,web -c blue,green \"pnpm --filter @ve/server dev\" \"pnpm --filter @ve/web dev\"",
-    "build": "pnpm --filter @ve/core build && pnpm --filter @ve/server build && pnpm --filter @ve/mcp build && pnpm --filter @ve/web build",
-    "mcp": "pnpm --filter @ve/mcp start",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "dev": "concurrently -n server,web -c blue,green \"npm run dev -w @ve/server\" \"npm run dev -w @ve/web\"",
+    "build": "npm run build -w @ve/core && npm run build -w @ve/server && npm run build -w @ve/mcp && npm run build -w @ve/web",
+    "mcp": "npm run start -w @ve/mcp",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -17,11 +20,7 @@
     "typescript": "^5.7.2",
     "tsx": "^4.19.2"
   },
-  "packageManager": "pnpm@10.0.0",
   "engines": {
     "node": ">=22"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "ffmpeg-static"]
   }
 }

@@ -26,13 +26,13 @@ clips, overlays and effects in a visual, dark-theme web UI.
 - **`packages/mcp`** — Model Context Protocol stdio server exposing editing/export
   tools that mutate the same `project.json`.
 - **`packages/web`** — React UI: project/files panel, multi-track timeline
-  (`@xzdarcy/react-timeline-editor`), and a real-time PixiJS composited preview.
+  (`@xzdarcy/react-timeline-editor`), and a real-time Canvas2D composited preview.
 
 ## Quick start
 
 ```bash
-pnpm install
-pnpm dev        # starts the backend (:5174) and the web UI (:5173)
+npm install
+npm run dev     # starts the backend (:5174) and the web UI (:5173)
 ```
 
 ### FFmpeg
@@ -48,7 +48,7 @@ export FFMPEG_SOURCE=download   # uses ffmpeg-static / ffprobe-static
 ### MCP server
 
 ```bash
-pnpm build
+npm run build
 claude mcp add video-editor -- node /absolute/path/to/packages/mcp/dist/index.js
 ```
 
