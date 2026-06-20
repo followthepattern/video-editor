@@ -56,6 +56,6 @@ claude mcp add --transport http video-editor http://localhost:5174/mcp
 
 Tools: `get_project`, `list_media`, `import_media`, `add_track`, `add_clip`,
 `move_clip`, `trim_clip`, `split_clip`, `add_text_overlay`, `add_transition`,
-`set_effect`, `remove_clip`, `set_resolution`, `rename_project`, `export_video`,
-`render_frame`. They edit the same `project.json` the UI uses, so an open browser
-updates live.
+`set_effect`, `remove_clip`, `set_transform`, `set_resolution`, `rename_project`,
+`export_video`, `render_frame`. They edit the same `project.json` the UI uses, so
+an open browser updates live.

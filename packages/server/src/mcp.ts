@@ -173,6 +173,31 @@ export function createMcpServer(store: ProjectStore, exportsDir: string): McpSer
   );
 
   server.registerTool(
+    "set_transform",
+    {
+      title: "Set transform",
+      description:
+        "Adjust a clip's position, scale, rotation and opacity. Only the provided fields change. " +
+        "x/y are pixel offsets from center, scale is a multiplier (1 = original), rotation is in degrees, opacity is 0-1.",
+      inputSchema: {
+        clipId: z.string(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        scale: z.number().positive().optional(),
+        rotation: z.number().optional(),
+        opacity: z.number().min(0).max(1).optional(),
+      },
+    },
+    async ({ clipId, ...patch }) => {
+      try {
+        return ok(await store.setTransform(clipId, patch));
+      } catch (err) {
+        return fail(String(err));
+      }
+    },
+  );
+
+  server.registerTool(
     "set_effect",
     {
       title: "Set effect",
