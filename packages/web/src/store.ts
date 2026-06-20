@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Project, Clip, Track } from "@ve/core";
+import type { Project, Clip, Track, TrackType } from "@ve/core";
 import { fetchProject, putProject, renderPreview } from "./api";
 
 interface EditorState {
@@ -34,6 +34,7 @@ interface EditorState {
   setName: (name: string) => void;
   setResolution: (width: number, height: number) => void;
   splitClipAt: (clipId: string, t: number) => void;
+  addTrack: (type: TrackType) => void;
 
   /** Apply a local mutation to the project and persist it (debounced). */
   update: (mutator: (draft: Project) => void) => void;
@@ -113,6 +114,17 @@ export const useEditor = create<EditorState>((set, get) => ({
     set((s) => ({ timelineScaleWidth: Math.max(20, Math.round(s.timelineScaleWidth / 1.5)) })),
   setTool: (tool) => set({ tool }),
   setName: (name) => get().update((draft) => void (draft.name = name)),
+  addTrack: (type) =>
+    get().update((draft) => {
+      const n = draft.tracks.filter((t) => t.type === type).length + 1;
+      draft.tracks.push({
+        id: `trk_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        type,
+        name: `${type[0].toUpperCase()}${type.slice(1)} ${n}`,
+        muted: false,
+        clips: [],
+      });
+    }),
   setResolution: (width, height) =>
     get().update((draft) => {
       draft.width = width;

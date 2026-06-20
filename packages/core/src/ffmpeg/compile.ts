@@ -175,10 +175,20 @@ export function compileProject(
     const idx = inputIndex++;
 
     const tf = clip.transform;
-    const chain: string[] = [`scale=iw*${tf.scale}:ih*${tf.scale}`];
-    if (tf.rotation) chain.push(`rotate=${(tf.rotation * Math.PI) / 180}`);
+    // Match the preview exactly: "contain"-fit the source into the canvas, then
+    // apply the user's scale; rotate around center (expanding the bounding box so
+    // corners aren't cropped); then opacity. Offsets x/y are project pixels.
+    const sw = asset.width || project.width;
+    const sh = asset.height || project.height;
+    const fit = Math.min(project.width / sw, project.height / sh);
+    const factor = fit * tf.scale;
+    const chain: string[] = [`scale=iw*${factor}:ih*${factor}`];
     chain.push(...effectFilters(clip.effects));
     chain.push("format=rgba");
+    if (tf.rotation) {
+      const rad = (tf.rotation * Math.PI) / 180;
+      chain.push(`rotate=${rad}:ow=rotw(${rad}):oh=roth(${rad}):c=0x00000000`);
+    }
     if (tf.opacity < 1) chain.push(`colorchannelmixer=aa=${tf.opacity}`);
     // Shift the clip's timestamps so it plays from its start on the timeline;
     // `enable` then reveals it during exactly that window.

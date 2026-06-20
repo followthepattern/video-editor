@@ -6,6 +6,7 @@ import {
   type TimelineEffect,
   type TimelineState,
 } from "@xzdarcy/react-timeline-editor";
+import type { Clip } from "@ve/core";
 import { useEditor } from "../store";
 
 const TRACK_COLORS: Record<string, string> = {
@@ -84,17 +85,26 @@ export function Timeline() {
 
   const handleChange = (data: TimelineRow[]) => {
     update((draft) => {
+      // Index every clip by id (with its current track) so we can both update
+      // timing and relocate clips that were dragged to a different row/layer.
+      const clipById = new Map<string, Clip>();
+      for (const t of draft.tracks) for (const c of t.clips) clipById.set(c.id, c);
+
+      const rebuilt = new Map<string, Clip[]>();
+      for (const t of draft.tracks) rebuilt.set(t.id, []);
+
       for (const row of data) {
-        const track = draft.tracks.find((t) => t.id === row.id);
-        if (!track) continue;
+        const arr = rebuilt.get(row.id);
+        if (!arr) continue;
         for (const action of row.actions) {
-          const clip = track.clips.find((c) => c.id === action.id);
-          if (clip) {
-            clip.start = action.start;
-            clip.duration = Math.max(0.05, action.end - action.start);
-          }
+          const clip = clipById.get(action.id);
+          if (!clip) continue;
+          clip.start = action.start;
+          clip.duration = Math.max(0.05, action.end - action.start);
+          arr.push(clip);
         }
       }
+      for (const t of draft.tracks) t.clips = rebuilt.get(t.id) ?? t.clips;
     });
   };
 

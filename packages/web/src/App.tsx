@@ -10,7 +10,9 @@ import {
   Scissors,
   ChevronDown,
   Check,
+  Plus,
 } from "lucide-react";
+import type { TrackType } from "@ve/core";
 import { useEditor } from "./store";
 import { PreviewCanvas } from "./components/PreviewCanvas";
 import { ProxyPlayer } from "./components/ProxyPlayer";
@@ -262,6 +264,47 @@ function ResolutionMenu() {
   );
 }
 
+function AddTrackMenu() {
+  const addTrack = useEditor((s) => s.addTrack);
+  const [open, setOpen] = useState(false);
+  const items: { type: TrackType; label: string }[] = [
+    { type: "video", label: "Video track" },
+    { type: "audio", label: "Audio track" },
+    { type: "overlay", label: "Overlay track" },
+    { type: "text", label: "Text track" },
+  ];
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Add a track (layer)"
+        className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted hover:bg-elevated hover:text-white"
+      >
+        <Plus size={14} /> Track
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 z-20 mt-1 w-40 rounded-md border border-border bg-surface p-1 shadow-xl">
+            {items.map((it) => (
+              <button
+                key={it.type}
+                onClick={() => {
+                  addTrack(it.type);
+                  setOpen(false);
+                }}
+                className="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-elevated"
+              >
+                {it.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function TimelineToolbar() {
   const tool = useEditor((s) => s.tool);
   const setTool = useEditor((s) => s.setTool);
@@ -287,6 +330,8 @@ function TimelineToolbar() {
       <div className="flex items-center gap-1">
         {toolBtn("select", MousePointer2, "Select", "A")}
         {toolBtn("blade", Scissors, "Cut", "B")}
+        <div className="mx-1 h-4 w-px bg-border" />
+        <AddTrackMenu />
       </div>
       <div className="flex items-center gap-1 text-muted">
         <button onClick={zoomOut} className="rounded p-1 hover:bg-elevated hover:text-white" title="Zoom out">
