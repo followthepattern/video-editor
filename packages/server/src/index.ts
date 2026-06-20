@@ -124,8 +124,26 @@ async function main() {
   });
 
   // --- Export -------------------------------------------------------------
-  app.post("/api/export", async (_req, res) => {
-    const out = join(paths.exportsDir, `${newId("export")}.mp4`);
+  const sanitizeExportName = (raw: unknown): string => {
+    if (typeof raw !== "string") return `export_${newId("x")}`;
+    // Strip any path components, then keep only safe characters.
+    const base = basename(raw)
+      .replace(/\.mp4$/i, "")
+      .replace(/[^A-Za-z0-9 _-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^[.\-\s]+|[.\-\s]+$/g, "")
+      .slice(0, 80)
+      .trim();
+    return base || `export_${newId("x")}`;
+  };
+
+  app.post("/api/export", async (req, res) => {
+    let name = sanitizeExportName(req.body?.name);
+    let out = join(paths.exportsDir, `${name}.mp4`);
+    if (existsSync(out)) {
+      name = `${name}-${newId("x")}`;
+      out = join(paths.exportsDir, `${name}.mp4`);
+    }
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
@@ -136,7 +154,7 @@ async function main() {
         onProgress: (p) => send("progress", p),
       });
       await handle.done;
-      send("done", { file: basename(out), url: `/api/exports/${basename(out)}` });
+      send("done", { file: basename(out), url: `/api/exports/${encodeURIComponent(basename(out))}` });
     } catch (err) {
       send("error", { error: String(err) });
     } finally {

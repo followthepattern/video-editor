@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FolderOpen, SlidersHorizontal } from "lucide-react";
+import { FolderOpen, SlidersHorizontal, Play, Pause, ZoomIn, ZoomOut } from "lucide-react";
 import { useEditor } from "./store";
 import { PreviewCanvas } from "./components/PreviewCanvas";
 import { Timeline } from "./components/Timeline";
@@ -13,6 +13,8 @@ export function App() {
   const init = useEditor((s) => s.init);
   const project = useEditor((s) => s.project);
   const selectedClipId = useEditor((s) => s.selectedClipId);
+  const isPlaying = useEditor((s) => s.isPlaying);
+  const togglePlay = useEditor((s) => s.togglePlay);
   const [tab, setTab] = useState<Tab>("project");
 
   useEffect(() => {
@@ -40,9 +42,23 @@ export function App() {
       {/* Main area */}
       <div className="flex min-h-0 flex-1">
         {/* Center: preview */}
-        <main className="flex min-w-0 flex-1 flex-col">
-          <div className="flex-1 bg-black p-4">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="group relative min-h-0 flex-1 overflow-hidden bg-black p-4">
             <PreviewCanvas />
+            {/* Center play/pause overlay */}
+            <button
+              onClick={togglePlay}
+              className="absolute inset-0 flex items-center justify-center"
+              aria-label={isPlaying ? "Pause" : "Play"}
+            >
+              <span
+                className={`flex h-16 w-16 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur transition-opacity ${
+                  isPlaying ? "opacity-0 group-hover:opacity-100" : "opacity-90"
+                }`}
+              >
+                {isPlaying ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
+              </span>
+            </button>
           </div>
           <Transport />
         </main>
@@ -64,8 +80,31 @@ export function App() {
       </div>
 
       {/* Bottom: timeline */}
-      <div className="h-64 border-t border-border bg-[#12141a]">
-        <Timeline />
+      <div className="flex h-64 flex-col border-t border-border bg-[#12141a]">
+        <TimelineToolbar />
+        <div className="min-h-0 flex-1">
+          <Timeline />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TimelineToolbar() {
+  const zoomIn = useEditor((s) => s.zoomIn);
+  const zoomOut = useEditor((s) => s.zoomOut);
+  const scaleWidth = useEditor((s) => s.timelineScaleWidth);
+  return (
+    <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
+      <span className="text-xs font-medium text-muted">Timeline</span>
+      <div className="flex items-center gap-1 text-muted">
+        <button onClick={zoomOut} className="rounded p-1 hover:bg-elevated hover:text-white" title="Zoom out">
+          <ZoomOut size={15} />
+        </button>
+        <span className="w-12 text-center text-[11px] tabular-nums">{scaleWidth} px/s</span>
+        <button onClick={zoomIn} className="rounded p-1 hover:bg-elevated hover:text-white" title="Zoom in">
+          <ZoomIn size={15} />
+        </button>
       </div>
     </div>
   );

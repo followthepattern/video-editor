@@ -9,6 +9,8 @@ interface EditorState {
   isPlaying: boolean;
   /** True while the user is dragging in the timeline (suppresses WS clobber). */
   interacting: boolean;
+  /** Timeline zoom: pixels per second (UI-only, not persisted). */
+  timelineScaleWidth: number;
 
   init: () => Promise<void>;
   setProjectFromServer: (p: Project) => void;
@@ -18,6 +20,8 @@ interface EditorState {
   pause: () => void;
   togglePlay: () => void;
   setInteracting: (v: boolean) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
 
   /** Apply a local mutation to the project and persist it (debounced). */
   update: (mutator: (draft: Project) => void) => void;
@@ -46,6 +50,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   currentTime: 0,
   isPlaying: false,
   interacting: false,
+  timelineScaleWidth: 100,
 
   init: async () => {
     const project = await fetchProject();
@@ -65,6 +70,10 @@ export const useEditor = create<EditorState>((set, get) => ({
   pause: () => set({ isPlaying: false }),
   togglePlay: () => set((s) => ({ isPlaying: !s.isPlaying })),
   setInteracting: (interacting) => set({ interacting }),
+  zoomIn: () =>
+    set((s) => ({ timelineScaleWidth: Math.min(600, Math.round(s.timelineScaleWidth * 1.5)) })),
+  zoomOut: () =>
+    set((s) => ({ timelineScaleWidth: Math.max(20, Math.round(s.timelineScaleWidth / 1.5)) })),
 
   update: (mutator) => {
     const current = get().project;

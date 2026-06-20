@@ -16,19 +16,24 @@ export function Transport() {
   const currentTime = useEditor((s) => s.currentTime);
   const setTime = useEditor((s) => s.setTime);
   const duration = useEditor((s) => s.project?.duration ?? 0);
+  const projectName = useEditor((s) => s.project?.name ?? "");
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<{ url: string; file: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState("");
 
   const runExport = async () => {
     setExporting(true);
     setProgress(0);
     setResult(null);
+    setError(null);
+    const exportName = name.trim() || projectName || "export";
     try {
-      await exportVideo((e) => {
+      await exportVideo(exportName, (e) => {
         if (e.type === "progress") setProgress((e.data as { percent: number }).percent);
-        if (e.type === "done") setResult((e.data as { url: string }).url);
-        if (e.type === "error") setResult(`error: ${(e.data as { error: string }).error}`);
+        if (e.type === "done") setResult(e.data as { url: string; file: string });
+        if (e.type === "error") setError((e.data as { error: string }).error);
       });
     } finally {
       setExporting(false);
@@ -59,15 +64,25 @@ export function Transport() {
             {Math.round(progress)}%
           </div>
         )}
+        {error && !exporting && <span className="text-xs text-red-400">{error}</span>}
         {result && !exporting && (
-          result.startsWith("error") ? (
-            <span className="text-xs text-red-400">{result}</span>
-          ) : (
-            <a href={result} target="_blank" className="text-xs text-accent underline" rel="noreferrer">
-              Open export
-            </a>
-          )
+          <a
+            href={result.url}
+            download={result.file}
+            target="_blank"
+            className="text-xs text-accent underline"
+            rel="noreferrer"
+          >
+            Download {result.file}
+          </a>
         )}
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={projectName || "export"}
+          className="w-32 rounded-md border border-border bg-elevated px-2 py-1.5 text-xs text-white placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
+          title="Export file name"
+        />
         <button
           onClick={runExport}
           disabled={exporting}

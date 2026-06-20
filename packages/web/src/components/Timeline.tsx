@@ -29,7 +29,18 @@ export function Timeline() {
   const selectedClipId = useEditor((s) => s.selectedClipId);
   const setTime = useEditor((s) => s.setTime);
   const setInteracting = useEditor((s) => s.setInteracting);
+  const scaleWidth = useEditor((s) => s.timelineScaleWidth);
+  const zoomIn = useEditor((s) => s.zoomIn);
+  const zoomOut = useEditor((s) => s.zoomOut);
   const timelineRef = useRef<TimelineState>(null);
+
+  // Ctrl/Cmd + wheel zooms the timeline.
+  const onWheel = (e: React.WheelEvent) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    if (e.deltaY < 0) zoomIn();
+    else zoomOut();
+  };
 
   // Push the master clock into the library's cursor imperatively so the
   // component does not re-render on every animation frame.
@@ -86,13 +97,14 @@ export function Timeline() {
   };
 
   return (
+    <div className="h-full w-full" onWheel={onWheel}>
     <RTimeline
       ref={timelineRef}
       style={{ width: "100%", height: "100%" }}
       editorData={editorData}
       effects={effects}
-      scale={2}
-      scaleWidth={120}
+      scale={1}
+      scaleWidth={scaleWidth}
       startLeft={24}
       rowHeight={64}
       autoScroll
@@ -123,5 +135,6 @@ export function Timeline() {
         );
       }}
     />
+    </div>
   );
 }

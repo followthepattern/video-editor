@@ -31,8 +31,15 @@ export interface ExportEvent {
 }
 
 /** Run an export and stream Server-Sent-Events back to the caller. */
-export async function exportVideo(onEvent: (e: ExportEvent) => void): Promise<void> {
-  const res = await fetch("/api/export", { method: "POST" });
+export async function exportVideo(
+  name: string,
+  onEvent: (e: ExportEvent) => void,
+): Promise<void> {
+  const res = await fetch("/api/export", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
   if (!res.body) throw new Error("no response body");
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
