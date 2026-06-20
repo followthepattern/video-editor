@@ -10,6 +10,7 @@ export interface ProbeResult {
   duration: number;
   width: number;
   height: number;
+  hasAudio: boolean;
 }
 
 /** Inspect a media file with ffprobe and return normalized metadata. */
@@ -37,6 +38,7 @@ export async function probeMedia(filePath: string): Promise<ProbeResult> {
 
   const streams = data.streams ?? [];
   const video = streams.find((s) => s.codec_type === "video");
+  const hasAudio = streams.some((s) => s.codec_type === "audio");
   const duration = Number(data.format?.duration ?? video?.duration ?? 0) || 0;
 
   let type: AssetType = "audio";
@@ -47,5 +49,6 @@ export async function probeMedia(filePath: string): Promise<ProbeResult> {
     duration,
     width: video?.width ?? 0,
     height: video?.height ?? 0,
+    hasAudio,
   };
 }

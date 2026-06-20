@@ -23,6 +23,8 @@ export const AssetSchema = z.object({
   duration: z.number().nonnegative().default(0),
   width: z.number().int().nonnegative().default(0),
   height: z.number().int().nonnegative().default(0),
+  /** Whether the source has an audio stream (so export only maps audio when present). */
+  hasAudio: z.boolean().default(false),
 });
 export type Asset = z.infer<typeof AssetSchema>;
 

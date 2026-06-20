@@ -12,7 +12,7 @@ function sample(): Project {
     fps: 30,
     duration: 10,
     assets: [
-      { id: "ast_v", path: "/media/a.mp4", name: "a.mp4", type: "video", duration: 8, width: 1280, height: 720 },
+      { id: "ast_v", path: "/media/a.mp4", name: "a.mp4", type: "video", duration: 8, width: 1280, height: 720, hasAudio: true },
     ],
     tracks: [
       {
@@ -67,4 +67,21 @@ test("ends with the output path and a video encoder", () => {
   const { args } = compileProject(sample(), "/out/final.mp4");
   assert.equal(args[args.length - 1], "/out/final.mp4");
   assert.ok(args.includes("libx264"));
+});
+
+test("maps audio for a clip whose source has audio", () => {
+  const { args } = compileProject(sample(), "/out/final.mp4");
+  const fc = args[args.indexOf("-filter_complex") + 1];
+  assert.match(fc, /\[0:a\]asetpts/);
+});
+
+test("omits the audio branch when the source has no audio stream", () => {
+  const p = sample();
+  p.assets[0].hasAudio = false;
+  const { args } = compileProject(p, "/out/final.mp4");
+  const fc = args[args.indexOf("-filter_complex") + 1];
+  // No reference to an input audio pad...
+  assert.doesNotMatch(fc, /\[0:a\]/);
+  // ...and a silent track is synthesized instead.
+  assert.match(fc, /anullsrc/);
 });

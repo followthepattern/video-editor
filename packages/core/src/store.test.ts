@@ -25,7 +25,7 @@ test("creates an empty project with default tracks", async () => {
 test("addAsset + addClip wires up duration and recomputes project duration", async () => {
   const { store, dir } = await tempStore();
   try {
-    const asset = await store.addAsset({ path: "/m/a.mp4", name: "a.mp4", type: "video", duration: 12, width: 1920, height: 1080 });
+    const asset = await store.addAsset({ path: "/m/a.mp4", name: "a.mp4", type: "video", duration: 12, width: 1920, height: 1080, hasAudio: true });
     const track = store.get().tracks[0];
     const clip = await store.addClip(track.id, { assetId: asset.id, start: 2, duration: 4 });
     assert.equal(clip.duration, 4);

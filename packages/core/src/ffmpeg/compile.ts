@@ -192,7 +192,7 @@ export function compileProject(
     );
     currentBase = next;
 
-    if (asset.type === "video" && !track.muted) {
+    if (asset.type === "video" && asset.hasAudio && !track.muted) {
       const al = `a${idx}`;
       const delayMs = Math.round(clip.start * 1000);
       filter.push(`[${idx}:a]asetpts=PTS-STARTPTS,adelay=${delayMs}|${delayMs}[${al}]`);
@@ -209,7 +209,7 @@ export function compileProject(
     if (track.type !== "audio" || track.muted) continue;
     for (const clip of track.clips) {
       const asset = clip.assetId ? assetById.get(clip.assetId) : undefined;
-      if (!asset) continue;
+      if (!asset || !asset.hasAudio) continue;
       inputs.push("-ss", String(clip.inPoint), "-t", String(clip.duration), "-i", asset.path);
       const idx = inputIndex++;
       const al = `a${idx}`;
