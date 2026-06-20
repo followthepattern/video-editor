@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEditor } from "./store";
 import { PreviewCanvas } from "./components/PreviewCanvas";
+import { ProxyPlayer } from "./components/ProxyPlayer";
 import { Timeline } from "./components/Timeline";
 import { ProjectPanel } from "./components/ProjectPanel";
 import { PropertiesPanel } from "./components/PropertiesPanel";
@@ -27,7 +28,13 @@ export function App() {
   const isPlaying = useEditor((s) => s.isPlaying);
   const togglePlay = useEditor((s) => s.togglePlay);
   const setTool = useEditor((s) => s.setTool);
+  const proxy = useEditor((s) => s.proxy);
+  const revision = useEditor((s) => s.revision);
+  const proxyRendering = useEditor((s) => s.proxyRendering);
   const [tab, setTab] = useState<Tab>("project");
+
+  // Use the pre-rendered proxy only when it matches the current edit revision.
+  const useProxy = !!proxy && proxy.rev === revision;
 
   useEffect(() => {
     init().catch((e) => console.error("init failed", e));
@@ -73,7 +80,13 @@ export function App() {
       <div className="flex min-h-0 flex-1">
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           <div className="group relative min-h-0 flex-1 overflow-hidden bg-black p-4">
-            <PreviewCanvas />
+            {useProxy && proxy ? <ProxyPlayer url={proxy.url} /> : <PreviewCanvas />}
+            {proxyRendering && (
+              <div className="absolute right-6 top-6 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs text-muted backdrop-blur">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-accent" />
+                Rendering preview…
+              </div>
+            )}
             <button
               onClick={togglePlay}
               className="absolute inset-0 flex items-center justify-center"

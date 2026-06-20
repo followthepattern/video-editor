@@ -120,10 +120,17 @@ export function PreviewCanvas() {
       raf = requestAnimationFrame(render);
       if (!project) return;
 
-      // Resize backing store if needed.
-      if (canvas.width !== project.width || canvas.height !== project.height) {
-        canvas.width = project.width;
-        canvas.height = project.height;
+      // Cap the backing-store resolution (longest side <= 720) to keep per-frame
+      // fill/filter cost down; CSS scales it up to fit. Drawing stays in project
+      // coordinates via a scale transform.
+      const cap = 720;
+      const longest = Math.max(project.width, project.height);
+      const sc = longest > cap ? cap / longest : 1;
+      const cw = Math.round(project.width * sc);
+      const ch = Math.round(project.height * sc);
+      if (canvas.width !== cw || canvas.height !== ch) {
+        canvas.width = cw;
+        canvas.height = ch;
       }
 
       const now = performance.now();
@@ -144,10 +151,35 @@ export function PreviewCanvas() {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Subsequent drawing uses project pixel coordinates, scaled into the canvas.
+      ctx.setTransform(sc, 0, 0, sc, 0, 0);
 
       const visualTracks = project.tracks.filter(
         (t) => t.type === "video" || t.type === "overlay" || t.type === "text",
       );
+
+      // Release decoders for clips far from the playhead to limit how many
+      // <video> elements decode simultaneously.
+      const LOOKAHEAD = 1.5;
+      const keep = new Set<string>();
+      for (const track of visualTracks) {
+        for (const clip of track.clips) {
+          if (time >= clip.start - LOOKAHEAD && time < clip.start + clip.duration + 0.5) {
+            keep.add(clip.id);
+          }
+        }
+      }
+      for (const [id, el] of mediaRef.current) {
+        if (!keep.has(id)) {
+          if (el instanceof HTMLVideoElement) {
+            el.pause();
+            el.removeAttribute("src");
+            el.load();
+          }
+          mediaRef.current.delete(id);
+        }
+      }
+
       for (const track of visualTracks) {
         for (const clip of track.clips) {
           if (time >= clip.start && time < clip.start + clip.duration) {

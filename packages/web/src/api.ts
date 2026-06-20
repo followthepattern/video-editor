@@ -17,6 +17,13 @@ export async function putProject(project: Project): Promise<Project> {
   return res.json();
 }
 
+/** Render a fast low-res preview proxy of the whole timeline. */
+export async function renderPreview(): Promise<{ url: string }> {
+  const res = await fetch("/api/preview", { method: "POST" });
+  if (!res.ok) throw new Error(`preview failed: ${res.status}`);
+  return res.json();
+}
+
 export async function uploadMedia(file: File): Promise<Asset> {
   const form = new FormData();
   form.append("file", file);

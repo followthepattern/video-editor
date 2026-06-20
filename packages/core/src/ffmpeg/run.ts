@@ -32,6 +32,19 @@ export interface RenderHandle {
 
 export interface RenderOptions {
   onProgress?: (progress: { percent: number; timeSec: number }) => void;
+  /** Downscale the output to this size (preview proxy). */
+  proxy?: { width: number; height: number };
+  /** x264 preset, e.g. "ultrafast". */
+  preset?: string;
+}
+
+/** Compute an even-dimensioned proxy size with its longest side capped. */
+export function proxySize(width: number, height: number, max = 720): { width: number; height: number } {
+  const even = (n: number) => (n % 2 ? n - 1 : n);
+  const longest = Math.max(width, height);
+  if (longest <= max) return { width: even(width), height: even(height) };
+  const k = max / longest;
+  return { width: Math.max(2, even(Math.round(width * k))), height: Math.max(2, even(Math.round(height * k))) };
 }
 
 /** Parse ffmpeg's `-progress pipe:1` key=value stream. */
@@ -59,6 +72,8 @@ export async function renderProject(
   const { args, ass } = compileProject(project, outputPath, {
     hasDrawText: drawText,
     assPath: `${outputPath}.ass`,
+    proxy: opts.proxy,
+    preset: opts.preset,
   });
   if (ass) await writeFile(ass.path, ass.content, "utf8");
 

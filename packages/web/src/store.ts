@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { Project, Clip, Track } from "@ve/core";
-import { fetchProject, putProject } from "./api";
+import { fetchProject, putProject, renderPreview } from "./api";
 
 interface EditorState {
   project: Project | null;
@@ -13,6 +13,12 @@ interface EditorState {
   timelineScaleWidth: number;
   /** Active timeline tool (UI-only). */
   tool: "select" | "blade";
+  /** Bumped on every edit; used to tell whether the proxy is still fresh. */
+  revision: number;
+  /** Latest rendered preview proxy and the revision it was rendered for. */
+  proxy: { url: string; rev: number } | null;
+  /** True while a preview proxy render is in flight. */
+  proxyRendering: boolean;
 
   init: () => Promise<void>;
   setProjectFromServer: (p: Project) => void;
@@ -43,6 +49,26 @@ function scheduleSave(get: () => EditorState) {
   }, 250);
 }
 
+let proxyTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Re-render the preview proxy a couple seconds after the last edit. */
+function scheduleProxy(set: (p: Partial<EditorState>) => void, get: () => EditorState) {
+  if (proxyTimer) clearTimeout(proxyTimer);
+  proxyTimer = setTimeout(async () => {
+    const p = get().project;
+    if (!p || p.tracks.every((t) => t.clips.length === 0)) return;
+    const rev = get().revision; // stable: no edits for the debounce window
+    set({ proxyRendering: true });
+    try {
+      const { url } = await renderPreview();
+      set({ proxy: { url, rev }, proxyRendering: false });
+    } catch (e) {
+      console.error("preview render failed", e);
+      set({ proxyRendering: false });
+    }
+  }, 1500);
+}
+
 function recompute(project: Project): Project {
   let duration = 0;
   for (const t of project.tracks)
@@ -58,11 +84,15 @@ export const useEditor = create<EditorState>((set, get) => ({
   interacting: false,
   timelineScaleWidth: 100,
   tool: "select",
+  revision: 0,
+  proxy: null,
+  proxyRendering: false,
 
   init: async () => {
     const project = await fetchProject();
     set({ project });
     connectWs(set, get);
+    scheduleProxy(set, get);
   },
 
   setProjectFromServer: (p) => {
@@ -116,8 +146,11 @@ export const useEditor = create<EditorState>((set, get) => ({
     if (!current) return;
     const draft: Project = structuredClone(current);
     mutator(draft);
-    set({ project: recompute(draft) });
+    // Bump revision so the existing proxy is considered stale (live preview
+    // takes over) and schedule a fresh proxy render once editing settles.
+    set({ project: recompute(draft), revision: get().revision + 1 });
     scheduleSave(get);
+    scheduleProxy(set, get);
   },
 }));
 

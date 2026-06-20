@@ -75,6 +75,16 @@ test("maps audio for a clip whose source has audio", () => {
   assert.match(fc, /\[0:a\]asetpts/);
 });
 
+test("proxy mode downscales the final frame and uses a fast preset", () => {
+  const { args } = compileProject(sample(), "/out/preview.mp4", {
+    proxy: { width: 404, height: 720 },
+    preset: "ultrafast",
+  });
+  const fc = args[args.indexOf("-filter_complex") + 1];
+  assert.match(fc, /scale=404:720/);
+  assert.equal(args[args.indexOf("-preset") + 1], "ultrafast");
+});
+
 test("omits the audio branch when the source has no audio stream", () => {
   const p = sample();
   p.assets[0].hasAudio = false;

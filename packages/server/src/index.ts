@@ -15,6 +15,7 @@ import {
   probeMedia,
   renderProject,
   extractFrame,
+  proxySize,
   newId,
   type Asset,
 } from "@ve/core";
@@ -167,6 +168,25 @@ async function main() {
   });
 
   app.use("/api/exports", express.static(paths.exportsDir));
+
+  // --- Preview proxy: a fast, low-res render of the whole timeline ---------
+  const previewFile = join(paths.cacheDir, "preview.mp4");
+  app.post("/api/preview", async (_req, res) => {
+    try {
+      const project = store.get();
+      const size = proxySize(project.width, project.height, 720);
+      const handle = await renderProject(project, previewFile, { proxy: size, preset: "ultrafast" });
+      await handle.done;
+      // Cache-bust so the <video> reloads the freshly written file.
+      res.json({ url: `/api/preview-file?ts=${Date.now()}` });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  });
+  app.get("/api/preview-file", (_req, res) => {
+    if (!existsSync(previewFile)) return res.status(404).end();
+    res.sendFile(previewFile);
+  });
 
   // --- MCP over HTTP (register with Claude Code) --------------------------
   // Streamable-HTTP with per-session transports, all bound to the shared

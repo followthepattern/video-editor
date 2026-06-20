@@ -5,6 +5,10 @@ export interface CompileOptions {
   hasDrawText?: boolean;
   /** Path to write an ASS subtitle file to (used when drawtext is unavailable). */
   assPath?: string;
+  /** Downscale the final frame to this size (for fast preview proxies). */
+  proxy?: { width: number; height: number };
+  /** x264 preset (e.g. "ultrafast" for proxies). */
+  preset?: string;
 }
 
 export interface CompileResult {
@@ -242,13 +246,18 @@ export function compileProject(
     );
   }
 
+  // Optional downscale of the final composited frame (preview proxy).
+  if (opts.proxy) {
+    const next = `base${++baseCounter}`;
+    filter.push(`[${currentBase}]scale=${opts.proxy.width}:${opts.proxy.height}[${next}]`);
+    currentBase = next;
+  }
+
   const args: string[] = ["-y", ...inputs, "-filter_complex", filter.join(";")];
   args.push("-map", `[${currentBase}]`, "-map", `[${audioOut}]`);
+  args.push("-c:v", "libx264", "-pix_fmt", "yuv420p");
+  if (opts.preset) args.push("-preset", opts.preset, "-crf", "30");
   args.push(
-    "-c:v",
-    "libx264",
-    "-pix_fmt",
-    "yuv420p",
     "-c:a",
     "aac",
     "-shortest",
