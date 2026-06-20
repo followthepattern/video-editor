@@ -30,6 +30,40 @@ export interface ExportEvent {
   data: unknown;
 }
 
+/**
+ * Save a rendered export to disk. Uses the File System Access API so the user
+ * can choose the destination folder + filename; falls back to a normal
+ * download where that API is unavailable (e.g. Safari/Firefox).
+ */
+export async function saveExport(
+  url: string,
+  suggestedName: string,
+): Promise<"saved" | "downloaded"> {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const picker = (window as unknown as {
+    showSaveFilePicker?: (o: unknown) => Promise<{
+      createWritable: () => Promise<{ write: (b: Blob) => Promise<void>; close: () => Promise<void> }>;
+    }>;
+  }).showSaveFilePicker;
+  if (picker) {
+    const handle = await picker({
+      suggestedName,
+      types: [{ description: "MP4 video", accept: { "video/mp4": [".mp4"] } }],
+    });
+    const writable = await handle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+    return "saved";
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = suggestedName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  return "downloaded";
+}
+
 /** Run an export and stream Server-Sent-Events back to the caller. */
 export async function exportVideo(
   name: string,

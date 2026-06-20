@@ -11,6 +11,8 @@ interface EditorState {
   interacting: boolean;
   /** Timeline zoom: pixels per second (UI-only, not persisted). */
   timelineScaleWidth: number;
+  /** Active timeline tool (UI-only). */
+  tool: "select" | "blade";
 
   init: () => Promise<void>;
   setProjectFromServer: (p: Project) => void;
@@ -22,6 +24,10 @@ interface EditorState {
   setInteracting: (v: boolean) => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  setTool: (t: "select" | "blade") => void;
+  setName: (name: string) => void;
+  setResolution: (width: number, height: number) => void;
+  splitClipAt: (clipId: string, t: number) => void;
 
   /** Apply a local mutation to the project and persist it (debounced). */
   update: (mutator: (draft: Project) => void) => void;
@@ -51,6 +57,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   isPlaying: false,
   interacting: false,
   timelineScaleWidth: 100,
+  tool: "select",
 
   init: async () => {
     const project = await fetchProject();
@@ -74,6 +81,35 @@ export const useEditor = create<EditorState>((set, get) => ({
     set((s) => ({ timelineScaleWidth: Math.min(600, Math.round(s.timelineScaleWidth * 1.5)) })),
   zoomOut: () =>
     set((s) => ({ timelineScaleWidth: Math.max(20, Math.round(s.timelineScaleWidth / 1.5)) })),
+  setTool: (tool) => set({ tool }),
+  setName: (name) => get().update((draft) => void (draft.name = name)),
+  setResolution: (width, height) =>
+    get().update((draft) => {
+      draft.width = width;
+      draft.height = height;
+    }),
+  splitClipAt: (clipId, t) =>
+    get().update((draft) => {
+      for (const track of draft.tracks) {
+        const i = track.clips.findIndex((c) => c.id === clipId);
+        if (i === -1) continue;
+        const clip = track.clips[i];
+        const end = clip.start + clip.duration;
+        if (t <= clip.start + 0.01 || t >= end - 0.01) return;
+        const offset = t - clip.start;
+        const right: Clip = {
+          ...structuredClone(clip),
+          id: `clp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          start: t,
+          duration: end - t,
+          inPoint: clip.inPoint + offset,
+        };
+        clip.duration = offset;
+        clip.outPoint = clip.inPoint + offset;
+        track.clips.splice(i + 1, 0, right);
+        return;
+      }
+    }),
 
   update: (mutator) => {
     const current = get().project;

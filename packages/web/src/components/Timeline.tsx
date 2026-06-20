@@ -32,6 +32,8 @@ export function Timeline() {
   const scaleWidth = useEditor((s) => s.timelineScaleWidth);
   const zoomIn = useEditor((s) => s.zoomIn);
   const zoomOut = useEditor((s) => s.zoomOut);
+  const tool = useEditor((s) => s.tool);
+  const splitClipAt = useEditor((s) => s.splitClipAt);
   const timelineRef = useRef<TimelineState>(null);
 
   // Ctrl/Cmd + wheel zooms the timeline.
@@ -97,7 +99,11 @@ export function Timeline() {
   };
 
   return (
-    <div className="h-full w-full" onWheel={onWheel}>
+    <div
+      className="h-full w-full"
+      onWheel={onWheel}
+      style={tool === "blade" ? { cursor: "crosshair" } : undefined}
+    >
     <RTimeline
       ref={timelineRef}
       style={{ width: "100%", height: "100%" }}
@@ -113,7 +119,10 @@ export function Timeline() {
       onActionResizeStart={() => setInteracting(true)}
       onActionMoveEnd={() => setInteracting(false)}
       onActionResizeEnd={() => setInteracting(false)}
-      onClickAction={(_e, { action }) => select(action.id)}
+      onClickAction={(_e, { action, time }) => {
+        if (tool === "blade") splitClipAt(action.id, time);
+        else select(action.id);
+      }}
       onCursorDrag={(time) => setTime(time)}
       onClickTimeArea={(time) => {
         setTime(time);

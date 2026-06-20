@@ -1,12 +1,15 @@
 import { createServer } from "node:http";
 import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { extname, join, basename } from "node:path";
 import express from "express";
 import cors from "cors";
 import multer from "multer";
 import chokidar from "chokidar";
 import { WebSocketServer, WebSocket } from "ws";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import {
   ProjectStore,
   probeMedia,
@@ -16,6 +19,7 @@ import {
   type Asset,
 } from "@ve/core";
 import { projectPaths } from "./paths.js";
+import { createMcpServer } from "./mcp.js";
 
 const PORT = Number(process.env.PORT || 5174);
 const paths = projectPaths();
@@ -28,7 +32,7 @@ async function main() {
   const store = await ProjectStore.open(paths.projectFile);
 
   const app = express();
-  app.use(cors());
+  app.use(cors({ exposedHeaders: ["Mcp-Session-Id"], allowedHeaders: ["Content-Type", "Mcp-Session-Id"] }));
   app.use(express.json({ limit: "5mb" }));
 
   // --- WebSocket: broadcast project changes -------------------------------
@@ -163,6 +167,55 @@ async function main() {
   });
 
   app.use("/api/exports", express.static(paths.exportsDir));
+
+  // --- MCP over HTTP (register with Claude Code) --------------------------
+  // Streamable-HTTP with per-session transports, all bound to the shared
+  // ProjectStore so edits persist and stream to the UI over WebSocket.
+  const mcpTransports = new Map<string, StreamableHTTPServerTransport>();
+
+  app.post("/mcp", async (req, res) => {
+    try {
+      const sessionId = req.headers["mcp-session-id"] as string | undefined;
+      let transport = sessionId ? mcpTransports.get(sessionId) : undefined;
+
+      if (!transport) {
+        if (!isInitializeRequest(req.body)) {
+          res.status(400).json({
+            jsonrpc: "2.0",
+            error: { code: -32000, message: "No valid session ID provided" },
+            id: null,
+          });
+          return;
+        }
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (sid) => {
+            mcpTransports.set(sid, transport!);
+          },
+        });
+        transport.onclose = () => {
+          if (transport!.sessionId) mcpTransports.delete(transport!.sessionId);
+        };
+        await createMcpServer(store, paths.exportsDir).connect(transport);
+      }
+      await transport.handleRequest(req, res, req.body);
+    } catch (err) {
+      if (!res.headersSent) res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // GET (server->client stream) and DELETE (session teardown) reuse the session.
+  const mcpSessionRequest = async (req: express.Request, res: express.Response) => {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    const transport = sessionId ? mcpTransports.get(sessionId) : undefined;
+    if (!transport) {
+      res.status(400).send("Invalid or missing session ID");
+      return;
+    }
+    await transport.handleRequest(req, res);
+  };
+  app.get("/mcp", mcpSessionRequest);
+  app.delete("/mcp", mcpSessionRequest);
 
   // --- Serve built web app in production ----------------------------------
   const webDist = join(process.cwd(), "../web/dist");

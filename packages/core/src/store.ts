@@ -222,6 +222,31 @@ export class ProjectStore extends EventEmitter {
     await this.save();
   }
 
+  /**
+   * Split a clip at timeline time `t` into two adjacent clips. The right part
+   * keeps playing the source from where the left part stopped. Returns the two
+   * resulting clips, or the original if `t` is outside the clip.
+   */
+  async splitClip(clipId: string, t: number): Promise<Clip[]> {
+    const { track, clip } = this.findClip(clipId);
+    const end = clip.start + clip.duration;
+    if (t <= clip.start + 0.01 || t >= end - 0.01) return [clip];
+    const offset = t - clip.start;
+    const right: Clip = {
+      ...structuredClone(clip),
+      id: newId("clp"),
+      start: t,
+      duration: end - t,
+      inPoint: clip.inPoint + offset,
+    };
+    clip.duration = offset;
+    clip.outPoint = clip.inPoint + offset;
+    const idx = track.clips.findIndex((c) => c.id === clip.id);
+    track.clips.splice(idx + 1, 0, right);
+    await this.save();
+    return [clip, right];
+  }
+
   async setMeta(patch: Partial<Pick<Project, "name" | "width" | "height" | "fps">>): Promise<Project> {
     Object.assign(this.project, patch);
     return this.save();

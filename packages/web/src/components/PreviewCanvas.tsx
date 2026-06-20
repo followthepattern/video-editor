@@ -10,6 +10,8 @@ import { mediaUrl } from "../api";
  */
 export function PreviewCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const width = useEditor((s) => s.project?.width ?? 16);
+  const height = useEditor((s) => s.project?.height ?? 9);
   // Media elements keyed by clip id, kept across frames.
   const mediaRef = useRef<Map<string, HTMLVideoElement | HTMLImageElement>>(new Map());
 
@@ -169,7 +171,7 @@ export function PreviewCanvas() {
       <canvas
         ref={canvasRef}
         className="max-h-full max-w-full object-contain"
-        style={{ aspectRatio: "16 / 9" }}
+        style={{ aspectRatio: `${width} / ${height}` }}
       />
     </div>
   );
