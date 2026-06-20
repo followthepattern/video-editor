@@ -234,17 +234,22 @@ export function compileProject(
     ass = { path: opts.assPath, content: buildAss(project, textEvents) };
   }
 
-  // Final audio mix (or silence).
-  let audioOut = "aout";
+  // Final audio mix (or silence), padded/trimmed to the exact timeline length so
+  // `-shortest` can't truncate the video when the last clip has shorter audio.
+  const audioOut = "aout";
+  let mixed: string;
   if (audioLabels.length === 0) {
-    filter.push(`anullsrc=channel_layout=stereo:sample_rate=48000,atrim=0:${duration}[aout]`);
+    filter.push(`anullsrc=channel_layout=stereo:sample_rate=48000[amix_src]`);
+    mixed = "amix_src";
   } else if (audioLabels.length === 1) {
-    audioOut = audioLabels[0];
+    mixed = audioLabels[0];
   } else {
     filter.push(
-      `${audioLabels.map((l) => `[${l}]`).join("")}amix=inputs=${audioLabels.length}:duration=longest:dropout_transition=0[aout]`,
+      `${audioLabels.map((l) => `[${l}]`).join("")}amix=inputs=${audioLabels.length}:duration=longest:dropout_transition=0[amix_src]`,
     );
+    mixed = "amix_src";
   }
+  filter.push(`[${mixed}]apad,atrim=0:${duration},asetpts=PTS-STARTPTS[${audioOut}]`);
 
   // Optional downscale of the final composited frame (preview proxy).
   if (opts.proxy) {
